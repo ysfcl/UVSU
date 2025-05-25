@@ -38,6 +38,12 @@ https://chatgpt.com/share/683338a9-4414-8008-83c5-cdc6a74cb23e
 Gemini
 https://g.co/gemini/share/9da3d17e50db
 
+## Kaynaklar
 
+www.OpenGameArt.org 2D Platformer Volcano Pack 1.1
+https://opengameart.org/content/2d-platformer-volcano-pack-11
+https://bdragon1727.itch.io/free-effect-and-bullet-16x16
+https://jitsukoan.itch.io/demon-door
+https://juanjosound.itch.io/dark-ambience-nocturnis-vol-1
 
 
