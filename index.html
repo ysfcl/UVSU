@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UVSU</title>
+    <style>
+        canvas {
+            border: 2px solid black;
+            display: block;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="1280" height="640"></canvas>
+<audio id="oyunMuzigi" src="img/grimyth - Night Walker.wav" loop></audio>
+
+<script>
+    const tuval = document.getElementById("gameCanvas");
+    const cizimKutusu = tuval.getContext("2d");
+    const oyunMuzigi = document.getElementById("oyunMuzigi");
+
+    const TILE_BOYUTU = 64; // Tum tilelların piksel cinsinden boyutu
+
+    // Karakter bilgileri ve koordinatları
+    const tumKarakterBilgileri = [
+        { id: "melek", img: "img/melek.png", baslangicPozisyonu: { x: 50, y: 400 }, atesAnimImg: "img/mor1.png", atesAnimFrames: 4, atesAnimHiz: 100, mermiId: "ates_melek", mermiImg: "img/mor1.png" },
+        { id: "seytan", img: "img/seytan.png", baslangicPozisyonu: { x: 400, y: 400 }, atesAnimImg: "img/kirmizi1.png", atesAnimFrames: 4, atesAnimHiz: 100, mermiId: "ates_seytan", mermiImg: "img/kirmizi1.png" },
+        { id: "oynanmis_seytan", img: "img/oynanmis_seytan.png", baslangicPozisyonu: { x: 500, y: 500 }, atesAnimImg: "img/kirmizi1.png", atesAnimFrames: 4, atesAnimHiz: 100, mermiId: "ates_seytan", mermiImg: "img/kirmizi1.png" }
+    ];
+
+    // Karakterlere boyut uygulanması
+    let karakterGenislik = TILE_BOYUTU;
+    let karakterYukseklik = TILE_BOYUTU;
+
+    // Bolum sayısı ve aktif bolum bilgisi
+    let mevcutBolum = 1;
+    const toplamBolumSayisi = 3;
+
+    function playMusic() {
+    if (oyunMuzigi.paused) {
+        oyunMuzigi.play().then(() => {
+            console.log("Muzik basariyla baslatildi.");
+        }).catch(error => {
+            // Tarayıcı muzigi engellerse konsolda burasi yazar
+            console.warn("Muzik otomatik oynatma engellendi:", error);
+            
+        });
+    }
+}
+let muzikBaslat=false;
+    document.addEventListener("keydown", (e) => {
+        if (!oyunMuzigi.playedPromise) { 
+            oyunMuzigi.playedPromise = playMusic();
+        }
+    });
+
+    //Harita duzeni ve bolum bilgileri
+    
+    const bolumBilgileri = [
+       
+    // bolum 1
+        {
+            id: 1,
+            arkaPlan: "web_proje_background_ve_harita/bg_volcano.png",
+            oyuncuBaslangic: { x: 2 * TILE_BOYUTU, y: 7 * TILE_BOYUTU }, //koordinat bilgileri
+            tileSet: {          // Matrise yazilan sayilarin anlami
+              '0': null,  
+              '1': "web_proje_background_ve_harita/p1.png",
+              '2': "web_proje_background_ve_harita/p2.png",
+              '3': "web_proje_background_ve_harita/p3.png",
+              
+              
+              '11': "web_proje_background_ve_harita/s1.png",
+              '12': "web_proje_background_ve_harita/s2.png",
+              '13': "web_proje_background_ve_harita/s3.png",
+              '14': "web_proje_background_ve_harita/s7.png",
+
+
+              '21': "web_proje_background_ve_harita/n1.png",
+              '22': "web_proje_background_ve_harita/n2.png",
+              '23': "web_proje_background_ve_harita/n3.png",
+              '24': "web_proje_background_ve_harita/n4.png",
+
+              '70': "web_proje_background_ve_harita/f1.png",
+              
+
+              '101': "web_proje_background_ve_harita/k1.png"
+                    
+            },
+            
+            matris: [
+               [70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70],
+               [70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70],
+               [70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,70],
+               [70, 0, 0, 0, 0, 0, 0, 0, 0, 23, 0, 0, 0, 0, 0, 0, 0, 0, 0,70],
+               [70, 0, 0, 0, 0, 0,11,12,12,12,12,12,12,13, 0, 0, 0, 0, 0,70],
+               [70, 0, 0, 0, 0,14,70,70,70,70,70,70,70,70, 0, 0, 0, 0, 0,70],
+               [70, 22, 0, 0,14, 0,70,70,70,70,70,70,70,70, 0, 0, 0, 0,101,70],
+               [70,12,13, 0,22, 0, 0, 0, 0, 24, 24, 0, 0, 0, 0, 0, 0,11,12,70],
+               [70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70],
+               [70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70] 
+
+          ]
+        },
+       
+        // bolum 2
+        {
+            id: 2,
+            arkaPlan: "web_proje_background_ve_harita/bg_volcano.png",
+            oyuncuBaslangic: { x: 1 * TILE_BOYUTU, y: 8 * TILE_BOYUTU },
+            tileSet: {
+                '0': null,   
+              '1': "web_proje_background_ve_harita/p1.png",
+              '2': "web_proje_background_ve_harita/p2.png",
+              '3': "web_proje_background_ve_harita/p3.png",
+              
+              
+              '11': "web_proje_background_ve_harita/s1.png",
+              '12': "web_proje_background_ve_harita/s2.png",
+              '13': "web_proje_background_ve_harita/s3.png",
+              '14': "web_proje_background_ve_harita/s7.png",
+
+
+              '21': "web_proje_background_ve_harita/n1.png",
+              '22': "web_proje_background_ve_harita/n2.png",
+              '23': "web_proje_background_ve_harita/n3.png",
+              '24': "web_proje_background_ve_harita/n4.png",
+
+              '70': "web_proje_background_ve_harita/f1.png",
+              
+
+              '101': "web_proje_background_ve_harita/k1.png"
+            },
+            matris: [
+              
+            [70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70],
+            [70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70],
+            [70, 25, 0 ,0, 0, 0, 0, 0, 0, 0,  0,  0, 0, 0, 0, 0, 0, 24, 0,70],
+            [70, 2, 2, 2, 2, 2, 2, 2, 3, 0,  0,  1, 2, 2, 2, 2, 2, 2, 2,70],
+            [70,70,70,70,70,70,70,70,70, 0,  0, 70,70,70,70,70,70,70,70,70],
+            [70,70,70,70,70,70,70,70,70, 0,  0, 70,70,70,70,70,70,70,70,70],
+            [70,70,70,70,70,70,70,70,70, 0,  0, 70,70,70,70,70,70,70,70,70],
+            [70,70,70,70,70,70,70,70,70,101,101,70,70,70,70,70,70,70,70,70],
+            [70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70],
+            [70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70]
+            
+          ]
+        },
+       
+        // bolum 3
+
+        {
+            id: 3,
+            arkaPlan: "web_proje_background_ve_harita/bg_volcano.png",
+            oyuncuBaslangic: { x: 10 * TILE_BOYUTU, y: 5 * TILE_BOYUTU },
+            tileSet: {
+              '0': null,   
+              '1': "web_proje_background_ve_harita/p1.png",
+              '2': "web_proje_background_ve_harita/p2.png",
+              '3': "web_proje_background_ve_harita/p3.png",
+              
+              
+              '11': "web_proje_background_ve_harita/s1.png",
+              '12': "web_proje_background_ve_harita/s2.png",
+              '13': "web_proje_background_ve_harita/s3.png",
+              '14': "web_proje_background_ve_harita/s7.png",
+
+
+              '21': "web_proje_background_ve_harita/n1.png",
+              '22': "web_proje_background_ve_harita/n2.png",
+              '23': "web_proje_background_ve_harita/n3.png",
+              '24': "web_proje_background_ve_harita/n4.png",
+
+              '70': "web_proje_background_ve_harita/f1.png",
+              
+
+              '101': "web_proje_background_ve_harita/k1.png"
+            },
+            matris: [
+               [70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70,70],
+               [70,70,70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22, 0,70],
+               [70,70,70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2,70],
+               [70,70,70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,70],
+               [70,70,70, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,101,70],
+               [70,70,70, 2, 2, 2, 2, 2, 2, 3, 0, 0, 0, 0, 0, 0, 1, 2, 2,70],
+               [70,70,70,70,70,70,70,70,70,70, 2, 2, 3, 0, 0, 0, 0, 0, 0,70],
+               [70,70,70,70,70,70,70,70,70,70,70,70,70, 3, 0, 0, 0, 0, 0,70],
+               [70,70,70,70,70,70,70,70,70,70,70,70,70,70, 3, 0, 0, 25, 0,70],
+               [70,70,70,70,70,70,70,70,70,70,70,70,70,70,70, 2, 2, 2, 2,70]
+            ]
+        }
+
+    ];
+
+      const platformTileDegerleri = new Set(['1', '2','3', '11', '12', '13', '14','70']);
+
+        //mermi bilgisi
+    const genelMermiBilgisi = { hiz: 10, boyut: 32 };
+
+        //tum yuklenen gorseller 
+    let yukluGorseller = {};
+
+        //aktif bolum icerisinde bulunan tum karakterlerin bilgileri
+    let karakterPozisyonlari = [];
+
+        //mermileri tutan dizi
+    let mermiler = [];
+
+    let arkaPlanGorseli = new Image();
+    let bolumBasliyor = true;
+    let oyunBitti = false;
+    let kazandiMi = false;
+
+         // hareket ederken basilan tuslar
+    let basiliTuslar = {};
+
+        //o esnada oynanan karakterin id'si
+    let mevcutOyuncuKarakterId = "melek";
+
+        //oynanış kaydı ve tekrari icin degiskenler
+    let mevcutBolumKaydi = [];
+    let kayitBaslangicZamani = 0;
+
+        // onceki bolumlerin oynanis kayitlari
+    let gecmisOynanisKayitlari = [];
+
+         //ates ettikten sonraki cooldown suresi
+    let sonAtesEtmeZamani = 0;
+    const atesEtmeCooldown = 500;
+
+        //yer cekimi kuvveti ve ziplama
+    const yerCekimi = 0.5; 
+    const ziplamaKuvveti = -10; 
+
+    
+    let mevcutBolumVerisi = null; 
+
+        //hareketli arka plan
+    let arkaPlanOffsetX = 0;
+    const arkaPlanHizi = 0.5; //arka plan kaydırma hizi (piksel cinsinden)
+
+    //gorsel yukleme fonksiyonu
+    function gorselYukle(id, src) {
+        return new Promise((resolve, reject) => {
+            let img = new Image();
+            img.src = src;
+            img.onload = () => {
+                yukluGorseller[id] = img;
+                resolve();
+            };
+            img.onerror = () => {
+                console.error(`Gorsel yuklenemedi: ${src}`);
+                reject();
+            };
+        });
+    }
+
+    async function tumGorselleriYukle() {
+        let yuklemeVaatleri = [];
+
+        // Karakter görselleri
+        tumKarakterBilgileri.forEach(karakter => {
+            yuklemeVaatleri.push(gorselYukle(karakter.id, karakter.img));
+                //ates animasyonu ve gorseli
+            if (karakter.atesAnimImg) {
+                yuklemeVaatleri.push(gorselYukle(karakter.atesAnimImg, karakter.atesAnimImg));
+            }
+                //mermi gorseli
+            if (karakter.mermiImg) {
+                yuklemeVaatleri.push(gorselYukle(karakter.mermiId, karakter.mermiImg));
+            }
+        });
+
+        //arka plan ve tum bolum tilelari
+        bolumBilgileri.forEach(bolum => {
+            //arka plan
+            yuklemeVaatleri.push(gorselYukle(bolum.arkaPlan, bolum.arkaPlan));
+            //tile
+            for (const key in bolum.tileSet) {
+                const src = bolum.tileSet[key];
+                if (src) {
+                    yuklemeVaatleri.push(gorselYukle(src, src));
+                }
+            }
+        });
+
+        return Promise.all(yuklemeVaatleri);
+    }
+
+    function bolumYukle(bolumId) {
+        oyunBitti = false;  // oyunun bitme durumu false yapiliyor
+        kazandiMi = false;  // kazanma durumu false yapiliyor
+        mermiler = [];      //yeni bolume gecince mermileri temizle
+
+        const bolum = bolumBilgileri.find(b => b.id === bolumId);
+        if (!bolum) {
+            console.error(`Bölüm ${bolumId} bulunamadı.`);
+            return;
+        }
+
+        mevcutBolumVerisi = bolum;
+        kayitBaslangicZamani = performance.now(); 
+        mevcutBolumKaydi = [];  //her yeni bolumde mevcut bolum kaydini sifirlamaya yariyormus
+        arkaPlanOffsetX = 0;    //her yeni bolumde arka plani sifirlama
+
+        
+        karakterPozisyonlari = [];
+
+        // onceki iterasyonda oynanan karakterler kisinin hayaleti olarak kaydediliyor
+        gecmisOynanisKayitlari.forEach(kayit => {
+            //gorsel bilgilerini bulma
+            const karakterBilgi = tumKarakterBilgileri.find(k => k.id === kayit.oyuncuKarakterId);
+            if (karakterBilgi) {
+                karakterPozisyonlari.push({
+                    id: `hayalet_${kayit.oyuncuKarakterId}_${karakterPozisyonlari.length}`,
+                    gorselId: kayit.oyuncuKarakterId, 
+                    gorsel: karakterBilgi.gorsel,
+                    x: kayit.kayitData[0].x,    //baslangic koordinati
+                    y: kayit.kayitData[0].y,
+                    yon: kayit.kayitData[0].yon,
+                    dikeyHiz: kayit.kayitData[0].dikeyHiz,
+                    canli: true,        //canli sekilde baslatma
+                    isPlayer: false, 
+                    kayit: kayit.kayitData, 
+                    kayitIndeksi: 0, 
+                    baslangicZamani: performance.now()  //bilgisayarin yonettigi karakterin oynatilmaya baslama zamani(?)
+                });
+            }
+        });
+
+                //oynanacak karakteri ekleme
+        const oyuncuKarakterBilgisi = tumKarakterBilgileri.find(k => k.id === mevcutOyuncuKarakterId);
+        if (oyuncuKarakterBilgisi) {
+            karakterPozisyonlari.push({
+                id: oyuncuKarakterBilgisi.id,
+                gorselId: oyuncuKarakterBilgisi.id, 
+                gorsel: oyuncuKarakterBilgisi.gorsel,
+                x: bolum.oyuncuBaslangic.x,
+                y: bolum.oyuncuBaslangic.y,
+                yon: "asagi",   //karakterin varsayilan baslangic yonu
+                dikeyHiz: 0,
+                yerde: false,
+                atesEdiyor: false,
+                currentAtesFrame: 0,
+                lastAtesFrameTime: 0,
+                mermiId: oyuncuKarakterBilgisi.mermiId,     //mermi turu
+                canli: true,
+                isPlayer: true     
+            });
+        } else {
+            console.error(`Oyuncu karakteri bilgisi bulunamadi: ${mevcutOyuncuKarakterId}`);
+            
+            mevcutOyuncuKarakterId = "melek"; 
+            bolumYukle(bolumId);    
+            return;
+        }
+
+        // Arka plan görselini ayarla
+        if (yukluGorseller[bolum.arkaPlan]) {
+            yukluGorseller["arkaPlan"] = yukluGorseller[bolum.arkaPlan];
+        } else {
+            console.warn(`Arka plan gorseli yuklenmedi: ${bolum.arkaPlan}`);
+            // Fallback: Beyaz arka plan
+            yukluGorseller["arkaPlan"] = null;
+        }
+    }
+
+    function bolumGecisiCiz() {
+        cizimKutusu.fillStyle = "black";
+        cizimKutusu.fillRect(0, 0, tuval.width, tuval.height);
+
+        cizimKutusu.fillStyle = "white";
+        cizimKutusu.font = "36px Arial";
+        cizimKutusu.textAlign = "center";
+        cizimKutusu.fillText(`Bolum ${mevcutBolum} basliyor...`, tuval.width / 2, tuval.height / 2);
+    }
+
+    function oyunBittiEkraniCiz(mesaj) {
+        cizimKutusu.fillStyle = "rgba(0, 0, 0, 0.7)";
+        cizimKutusu.fillRect(0, 0, tuval.width, tuval.height);
+
+        cizimKutusu.fillStyle = "white";
+        cizimKutusu.font = "48px Arial";
+        cizimKutusu.textAlign = "center";
+        cizimKutusu.fillText(mesaj, tuval.width / 2, tuval.height / 2 - 30);
+
+        cizimKutusu.font = "24px Arial";
+        if (kazandiMi) {
+            cizimKutusu.fillText("Oyun bitti! Tebrikler!", tuval.width / 2, tuval.height / 2 + 20);
+        } else {
+            cizimKutusu.fillText("Yeniden baslamak icin 'Enter' tusuna basiniz.", tuval.width / 2, tuval.height / 2 + 20);
+        }
+    }
+
+    function ciz() {
+        // HAREKETLİ ARKA PLAN 
+        if (yukluGorseller["arkaPlan"]) {
+            const bgImage = yukluGorseller["arkaPlan"];
+            
+            cizimKutusu.drawImage(
+                bgImage,
+                arkaPlanOffsetX,
+                0,
+                tuval.width,
+                tuval.height
+            );
+            
+            cizimKutusu.drawImage(
+                bgImage,
+                arkaPlanOffsetX + tuval.width,
+                0,
+                tuval.width,
+                tuval.height
+            );
+
+                //arka planin konumunu guncelleme
+            arkaPlanOffsetX -= arkaPlanHizi;
+                // arka plan tamamen sola kaymissa, başa al
+            if (arkaPlanOffsetX <= -tuval.width) {
+                arkaPlanOffsetX = 0;
+            }
+        } else {
+                //arka plan resmi yüklenmediyse duz renk ciz
+            cizimKutusu.fillStyle = "lightblue";
+            cizimKutusu.fillRect(0, 0, tuval.width, tuval.height);
+        }
+
+
+                //matristeki butun tilelari cizmeyi saglar
+        if (mevcutBolumVerisi && mevcutBolumVerisi.matris) {
+            for (let row = 0; row < mevcutBolumVerisi.matris.length; row++) {
+                for (let col = 0; col < mevcutBolumVerisi.matris[row].length; col++) {
+                    const tileValue = mevcutBolumVerisi.matris[row][col];
+                    const imgSrc = mevcutBolumVerisi.tileSet[tileValue];
+
+                    if (imgSrc && yukluGorseller[imgSrc]) {
+                        cizimKutusu.drawImage(
+                            yukluGorseller[imgSrc],
+                            col * TILE_BOYUTU,
+                            row * TILE_BOYUTU,
+                            TILE_BOYUTU,
+                            TILE_BOYUTU
+                        );
+                    } else if (tileValue === '1') {
+                        cizimKutusu.fillStyle = "gray";
+                        cizimKutusu.fillRect(col * TILE_BOYUTU, row * TILE_BOYUTU, TILE_BOYUTU, TILE_BOYUTU);
+                    }
+                }
+            }
+        }
+
+            //tum karakterleri cizer 
+        for (let i = 0; i < karakterPozisyonlari.length; i++) {
+            let poz = karakterPozisyonlari[i];
+            if (!poz.canli) continue;
+
+            let karakterGorseli;
+            let karakterBilgi = tumKarakterBilgileri.find(k => k.id === (poz.isPlayer ? poz.id : poz.gorselId));
+
+            const hedefGenislik = karakterGenislik;
+            const hedefYukseklik = karakterYukseklik;
+
+            if (poz.isPlayer && poz.atesEdiyor && karakterBilgi && yukluGorseller[karakterBilgi.atesAnimImg]) {
+                karakterGorseli = yukluGorseller[karakterBilgi.atesAnimImg];
+                const frameGenislik = karakterGorseli.width / karakterBilgi.atesAnimFrames;
+                const kaynakX = poz.currentAtesFrame * frameGenislik;
+
+                cizimKutusu.drawImage(
+                    karakterGorseli,
+                    kaynakX, 0,
+                    frameGenislik, karakterGorseli.height,
+                    poz.x, poz.y,
+                    hedefGenislik, hedefYukseklik
+                );
+            } else {
+                karakterGorseli = yukluGorseller[poz.isPlayer ? poz.id : poz.gorselId];
+                if (karakterGorseli) {
+                    cizimKutusu.drawImage(karakterGorseli, poz.x, poz.y, hedefGenislik, hedefYukseklik);
+                } else {
+                    cizimKutusu.fillStyle = (poz.isPlayer) ? "red" : "blue";
+                    cizimKutusu.fillRect(poz.x, poz.y, karakterGenislik, karakterYukseklik);
+                }
+            }
+        }
+
+                //mermileri cizen dongu
+        for (let i = 0; i < mermiler.length; i++) {
+            let mermi = mermiler[i];
+            let mermiGorseli = yukluGorseller[mermi.mermiId];
+            if (mermiGorseli) {
+                cizimKutusu.drawImage(mermiGorseli, mermi.x, mermi.y, genelMermiBilgisi.boyut, genelMermiBilgisi.boyut);
+            } else {
+                cizimKutusu.fillStyle = "orange";
+                cizimKutusu.fillRect(mermi.x, mermi.y, genelMermiBilgisi.boyut, genelMermiBilgisi.boyut);
+            }
+        }
+
+                //oyun bitis ekranini cizme
+        if (oyunBitti) {
+            if (kazandiMi) {
+                oyunBittiEkraniCiz("Bolum bitti.");
+            } else {
+                oyunBittiEkraniCiz("Oldunuz!");
+            }
+        }
+    }
+
+    function guncelle() {
+        if (bolumBasliyor || oyunBitti) return;
+
+        const oyuncuKarakter = karakterPozisyonlari.find(k => k.isPlayer);
+        if (!oyuncuKarakter || !oyuncuKarakter.canli) {
+            if (!oyunBitti) {
+                oyunBitti = true;
+                kazandiMi = false;
+                console.log("Oyuncu olduruldu! Oyun bitti.");
+            }
+            return;
+        }
+
+        const hiz = 5;
+        const simdi = performance.now();
+
+        // Yer çekimi
+        oyuncuKarakter.dikeyHiz += yerCekimi;
+        oyuncuKarakter.y += oyuncuKarakter.dikeyHiz;
+
+        // Yatay hareket
+        if (basiliTuslar["ArrowLeft"] || basiliTuslar["a"]) {
+            oyuncuKarakter.x -= hiz;
+            oyuncuKarakter.yon = "sol";
+        }
+        if (basiliTuslar["ArrowRight"] || basiliTuslar["d"]) {
+            oyuncuKarakter.x += hiz;
+            oyuncuKarakter.yon = "sag";
+        }
+
+        // Sinir kontrolu 
+        oyuncuKarakter.x = Math.max(0, Math.min(tuval.width - karakterGenislik, oyuncuKarakter.x));
+        oyuncuKarakter.y = Math.max(0, Math.min(tuval.height - karakterYukseklik, oyuncuKarakter.y));
+
+        // Zemin çarpisma kontrolu
+        let yerdeTemasVar = false;
+        for (let row = 0; row < mevcutBolumVerisi.matris.length; row++) {
+            for (let col = 0; col < mevcutBolumVerisi.matris[row].length; col++) {
+                const tileValue = mevcutBolumVerisi.matris[row][col];
+                if (platformTileDegerleri.has(String(tileValue))) {
+                    const tileX = col * TILE_BOYUTU;
+                    const tileY = row * TILE_BOYUTU;
+
+                            // Karakterin bir sonraki adimi ile tile carpismasi
+                    if (carpismaKontrol(oyuncuKarakter.x, oyuncuKarakter.y + oyuncuKarakter.dikeyHiz, karakterGenislik, karakterYukseklik,
+                                        tileX, tileY, TILE_BOYUTU, TILE_BOYUTU)) {
+                        
+                        if (oyuncuKarakter.dikeyHiz > 0) {
+                            oyuncuKarakter.y = tileY - karakterYukseklik;
+                            oyuncuKarakter.dikeyHiz = 0;
+                            oyuncuKarakter.yerde = true;
+                            yerdeTemasVar = true;
+                        }
+                        
+                        else if (oyuncuKarakter.dikeyHiz < 0) {
+                            oyuncuKarakter.y = tileY + TILE_BOYUTU;
+                            oyuncuKarakter.dikeyHiz = 0;
+                        }
+                    }
+                }
+            }
+        }
+        if (!yerdeTemasVar) {
+            oyuncuKarakter.yerde = false;
+        }
+
+        
+        if (oyuncuKarakter.y + karakterYukseklik > tuval.height + 50) { 
+            oyuncuKarakter.canli = false;
+        }
+
+                //oynanan karakterin pozisyonunu kaydetme
+        mevcutBolumKaydi.push({
+            zaman: simdi - kayitBaslangicZamani,
+            x: oyuncuKarakter.x,
+            y: oyuncuKarakter.y,
+            atesEdiyor: oyuncuKarakter.atesEdiyor,
+            currentAtesFrame: oyuncuKarakter.currentAtesFrame,
+            yon: oyuncuKarakter.yon,
+            dikeyHiz: oyuncuKarakter.dikeyHiz
+        });
+
+            //iterasyon ve bolum kontrolu
+        let iterasyonBittiMi = false; 
+
+        if (mevcutOyuncuKarakterId === "melek") {
+            //melek karakteri icin kapıya ulasma kontrolu
+            let kapiX = -1, kapiY = -1;
+            for (let row = 0; row < mevcutBolumVerisi.matris.length; row++) {
+                for (let col = 0; col < mevcutBolumVerisi.matris[row].length; col++) {
+                    if (mevcutBolumVerisi.matris[row][col] === 101) {   //101 kapi pngsini temsil etmekte
+                        kapiX = col * TILE_BOYUTU;
+                        kapiY = row * TILE_BOYUTU;
+                        break;
+                    }
+                }
+                if (kapiX !== -1) break;
+            }
+
+            if (kapiX !== -1 && carpismaKontrol(oyuncuKarakter.x, oyuncuKarakter.y, karakterGenislik, karakterYukseklik,
+                                                 kapiX, kapiY, TILE_BOYUTU, TILE_BOYUTU)) {
+                iterasyonBittiMi = true;
+            }
+        } else if (mevcutOyuncuKarakterId === "seytan" || mevcutOyuncuKarakterId === "oynanmis_seytan") {
+                //seytanlarla melegi vurma 
+            const melekKarakter = karakterPozisyonlari.find(k => !k.isPlayer && k.gorselId === "melek" && k.canli);
+                //melegin durum kontrolu
+            if (!melekKarakter) {
+                iterasyonBittiMi = true;
+            }
+        }
+
+
+        if (iterasyonBittiMi) {
+            if (!oyunBitti) { 
+                console.log(`Bolum ${mevcutBolum}, ${mevcutOyuncuKarakterId} iterasyonu tamamlandi.`);
+                
+                
+                gecmisOynanisKayitlari.push({
+                    oyuncuKarakterId: mevcutOyuncuKarakterId,
+                    kayitData: mevcutBolumKaydi 
+                });
+
+                    //bolum ve iterasyon atlama
+                let sonrakiKarakterId;
+                if (mevcutOyuncuKarakterId === "melek") {
+                    sonrakiKarakterId = "seytan";
+                } else if (mevcutOyuncuKarakterId === "seytan") {
+                    sonrakiKarakterId = "oynanmis_seytan";
+                } else if (mevcutOyuncuKarakterId === "oynanmis_seytan") {
+                    sonrakiKarakterId = null;       //iterasyonlar bitti
+                }
+
+                if (sonrakiKarakterId) {
+                    //sonraki oynanacak karakterin atamasi
+                    mevcutOyuncuKarakterId = sonrakiKarakterId;
+                    bolumBasliyor = true;   //bolumler arasi gecis
+                    bolumGecisiCiz();
+                    setTimeout(() => {
+                        bolumBasliyor = false;
+                        bolumYukle(mevcutBolum); 
+                    }, 1000);
+                } else {
+                    
+                    if (mevcutBolum < toplamBolumSayisi) {
+                        mevcutBolum++;
+                        mevcutOyuncuKarakterId = "melek"; 
+                        gecmisOynanisKayitlari = []; 
+                        bolumBasliyor = true;
+                        bolumGecisiCiz();
+                        setTimeout(() => {
+                            bolumBasliyor = false;
+                            bolumYukle(mevcutBolum);
+                        }, 1000);
+                    } else {
+                        
+                        oyunBitti = true;
+                        kazandiMi = true;
+                        console.log("Tum bolumler ve iterasyonlar tamamlandi, oyunu kazandiniz ve cehennemden kactiniz!");    // oyun bitti
+                    }
+                }
+            }
+        }
+
+        
+        if (oyuncuKarakter.atesEdiyor) {
+            const karakterBilgi = tumKarakterBilgileri.find(k => k.id === oyuncuKarakter.id);
+            if (karakterBilgi) {
+                if (simdi - oyuncuKarakter.lastAtesFrameTime > karakterBilgi.atesAnimHiz) {
+                    oyuncuKarakter.currentAtesFrame++;
+                    oyuncuKarakter.lastAtesFrameTime = simdi;
+
+                    if (oyuncuKarakter.currentAtesFrame >= karakterBilgi.atesAnimFrames) {
+                        oyuncuKarakter.atesEdiyor = false;
+                        oyuncuKarakter.currentAtesFrame = 0;
+                    }
+                }
+            }
+        }
+
+                //mermi hareketleri
+        for (let i = mermiler.length - 1; i >= 0; i--) {
+            let mermi = mermiler[i];
+            mermi.x += mermi.yonX * genelMermiBilgisi.hiz;
+            mermi.y += mermi.yonY * genelMermiBilgisi.hiz;
+
+            if (mermi.x < -genelMermiBilgisi.boyut || mermi.x > tuval.width ||
+                mermi.y < -genelMermiBilgisi.boyut || mermi.y > tuval.height) {
+                mermiler.splice(i, 1);
+            }
+        }
+
+                //hayalet karakterlerin kontrolu (?)
+        for (let i = 0; i < karakterPozisyonlari.length; i++) {
+            let digerKarakter = karakterPozisyonlari[i];
+            if (digerKarakter.isPlayer || !digerKarakter.canli) continue;
+
+            if (digerKarakter.kayit && digerKarakter.kayit.length > 0) {
+                const gecenZaman = simdi - digerKarakter.baslangicZamani;
+
+                while (digerKarakter.kayitIndeksi < digerKarakter.kayit.length - 1 &&
+                       digerKarakter.kayit[digerKarakter.kayitIndeksi + 1].zaman < gecenZaman) {
+                    digerKarakter.kayitIndeksi++;
+                }
+
+                const hedefPozisyon = digerKarakter.kayit[digerKarakter.kayitIndeksi];
+
+                digerKarakter.x = hedefPozisyon.x;
+                digerKarakter.y = hedefPozisyon.y;
+                digerKarakter.yon = hedefPozisyon.yon || "yukari";
+            }
+        }
+
+        
+        for (let m = mermiler.length - 1; m >= 0; m--) {
+            let mermi = mermiler[m];
+            for (let k = 0; k < karakterPozisyonlari.length; k++) {
+                let karakter = karakterPozisyonlari[k];
+
+                if (mermi.firlatanIsPlayer && !karakter.isPlayer && karakter.canli) {
+                     
+                    if ((oyuncuKarakter.id === "seytan" || oyuncuKarakter.id === "oynanmis_seytan") && karakter.gorselId === "melek") {
+                        if (carpismaKontrol(mermi.x, mermi.y, genelMermiBilgisi.boyut, genelMermiBilgisi.boyut,
+                                             karakter.x, karakter.y, karakterGenislik, karakterYukseklik)) {
+                            console.log(`Mermi melek karakteri ile çarpıştı!`);
+                            karakter.canli = false;
+                            mermiler.splice(m, 1);
+                            break;
+                        }
+                    } else if (karakter.gorselId !== "melek") { 
+                         if (carpismaKontrol(mermi.x, mermi.y, genelMermiBilgisi.boyut, genelMermiBilgisi.boyut,
+                                             karakter.x, karakter.y, karakterGenislik, karakterYukseklik)) {
+                            console.log(`Mermi ${karakter.id} ile çarpıştı!`);
+                            karakter.canli = false;
+                            mermiler.splice(m, 1);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        ciz();
+    }
+
+    function atesEt() {
+       const simdi = performance.now();
+        const oyuncuKarakter = karakterPozisyonlari.find(k => k.isPlayer);
+        if (!oyuncuKarakter || !oyuncuKarakter.canli) return;
+
+        if (simdi - sonAtesEtmeZamani < atesEtmeCooldown) {
+            return;
+        }
+
+        oyuncuKarakter.atesEdiyor = true;
+        oyuncuKarakter.currentAtesFrame = 0;
+        oyuncuKarakter.lastAtesFrameTime = simdi;
+
+            //mermi boyutu ayarlamna
+        let mermiX = oyuncuKarakter.x + (karakterGenislik / 2) - (genelMermiBilgisi.boyut / 2);
+        let mermiY = oyuncuKarakter.y + (karakterYukseklik / 2) - (genelMermiBilgisi.boyut / 2);
+        let yonX = 0;
+        let yonY = 0;
+
+        switch (oyuncuKarakter.yon) {
+            case "yukari":
+                yonY = -1;
+                mermiY = oyuncuKarakter.y - genelMermiBilgisi.boyut; 
+                break;
+            case "asagi":
+                yonY = 1;
+                mermiY = oyuncuKarakter.y + karakterYukseklik; 
+                break;
+            case "sol":
+                yonX = -1;
+                mermiX = oyuncuKarakter.x - genelMermiBilgisi.boyut;
+                break;
+            case "sag":
+                yonX = 1;
+                mermiX = oyuncuKarakter.x + karakterGenislik; 
+                break;
+            default:
+                yonY = -1;  //varsayilan yon
+                mermiY = oyuncuKarakter.y - genelMermiBilgisi.boyut;
+                break;
+        }
+
+        mermiler.push({
+            x: mermiX,
+            y: mermiY,
+            yonX: yonX,
+            yonY: yonY,
+            mermiId: oyuncuKarakter.mermiId,
+            firlatanIsPlayer: true 
+        });
+
+        sonAtesEtmeZamani = simdi;
+    }
+
+    function carpismaKontrol(obj1X, obj1Y, obj1W, obj1H, obj2X, obj2Y, obj2W, obj2H) {
+        return obj1X < obj2X + obj2W &&
+               obj1X + obj1W > obj2X &&
+               obj1Y < obj2Y + obj2H &&
+               obj1Y + obj1H > obj2Y;
+    }
+
+    document.addEventListener("keydown", (e) => {
+        basiliTuslar[e.key] = true;
+
+        const oyuncuKarakter = karakterPozisyonlari.find(k => k.isPlayer);
+
+            //ziplama 
+        if ((e.key === "ArrowUp" || e.key === "w") && oyuncuKarakter && oyuncuKarakter.yerde) {
+            oyuncuKarakter.dikeyHiz = ziplamaKuvveti;
+            oyuncuKarakter.yerde = false;
+        }
+
+            //ates etme
+        if (e.key === "x") {
+            atesEt();
+        }
+
+        if (e.key === "Enter") {
+            if (oyunBitti && !kazandiMi) {
+                mevcutBolum = 1;
+                mevcutOyuncuKarakterId = "melek"; 
+                gecmisOynanisKayitlari = [];
+                bolumBasliyor = true;
+                bolumGecisiCiz();
+                setTimeout(() => {
+                    bolumBasliyor = false;
+                    bolumYukle(mevcutBolum);
+                }, 1000);
+                return;
+            }
+        }
+          if (!muzikBasladiMi) {
+        playMusic();
+        muzikBaslat = true; //muzigin baslamasi icin kontrol
+       }
+        
+    });
+
+    document.addEventListener("keyup", (e) => {
+        basiliTuslar[e.key] = false;
+    });
+
+    
+
+    let oyunDongusuInterval;
+
+    async function oyunuBaslat() {
+        
+        try {
+            
+            await tumGorselleriYukle();
+            console.log("Tüm görseller yüklendi!");
+        } catch (error) {
+            console.error("Görsel yüklemede hata oluştu:", error);
+            // konsola hata durumunda uyari verme
+            return;
+        }
+
+        if (oyunDongusuInterval) {
+            clearInterval(oyunDongusuInterval);
+        }
+        oyunDongusuInterval = setInterval(() => {
+            if (!bolumBasliyor && !oyunBitti) {
+                guncelle();
+            } else if (oyunBitti) {
+                ciz(); 
+            }
+        }, 1000 / 60);
+
+            //oyunu ilk bolumden baslatma
+        bolumBasliyor = true; 
+        bolumGecisiCiz(); 
+        setTimeout(() => {
+            bolumBasliyor = false; 
+            bolumYukle(mevcutBolum);
+        }, 1000); //1000 milisaniye
+    }
+
+    oyunuBaslat();
+</script>
+
+</body>
+</html>
