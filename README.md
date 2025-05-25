@@ -27,7 +27,7 @@ https://dietzribi.itch.io/uvsu
 https://raw.githubusercontent.com/ysfcl/UVSU/main/resim1.png
 https://raw.githubusercontent.com/ysfcl/UVSU/main/resim2.png
 
-## Oyunun İndirme Linki
+## Oyunun Linki
 Oyuna bu linkten ulaşabilirsiniz.
 ([https://ysfcl.github.io/UVSU/])
 
